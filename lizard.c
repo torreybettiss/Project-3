@@ -63,7 +63,7 @@ void * catThread(void * param);  //AM TB
  * be simulated.  
  * Try 30 for development and 120 for more thorough testing.
  */
-#define WORLDEND             30
+#define WORLDEND             120
 
 /*
  * Number of lizard threads to create
@@ -103,9 +103,8 @@ void * catThread(void * param);  //AM TB
 /*
  * Declare global variables here
  */
-sem_t lizard_cross;  //AM TB**
-sem_t lizard_look;  //AM TB**
-sem_t cat_look;  //AM TB**
+sem_t cross;  //AM TB
+sem_t look;  //AM TB
 
 /**************************************************/
 /* Please leave these variables alone.  They are  */
@@ -132,7 +131,7 @@ int main(int argc, char **argv)
   /*
    * Declare local variables
    */
-    int i,j; //AM TB**
+    int i; //AM TB
     pthread_t lizardThreads[NUM_LIZARDS];  //AM TB
     pthread_t catThreads[NUM_CATS];  //AM TB
 
@@ -159,9 +158,8 @@ int main(int argc, char **argv)
   /*
    * Initialize locks and/or semaphores
    */
-  sem_init(&lizard_cross, 0, MAX_LIZARD_CROSSING); //AM TB
-  sem_init(&lizard_look, 0, 1); //AM **
-  sem_init(&cat_look, 0, 1); //AM TB**
+  sem_init(&cross, 0, MAX_LIZARD_CROSSING); //AM TB
+  sem_init(&look, 0, 1); //AM TB
   
   /*
    * Create NUM_LIZARDS lizard threads
@@ -173,13 +171,13 @@ int main(int argc, char **argv)
 
   /*
    * Create NUM_CATS cat threads
-       */
-     for(i = 0; j < NUM_CATS; j++)  //AM TB**
-      {
-          pthread_create(&catThreads[j], NULL, &catThread, (void *)(intptr_t)&j); //AM TB**
-      }
+   */
+  for(i = 0; i < NUM_CATS; i++)  //AM TB
+  {
+      pthread_create(&catThreads[i], NULL, &catThread, (void *)(intptr_t)&i); //AM TB
+  }
 
-      /*
+  /*
    * Now let the world run for a while
    */
   sleep( WORLDEND );
@@ -197,17 +195,16 @@ int main(int argc, char **argv)
       pthread_join(lizardThreads[i], NULL);  //AM TB
   }
   
-  for(i = 0; j < NUM_CATS; j++)  //AM TB**
+  for(i = 0; i < NUM_CATS; i++)  //AM TB
   {
-     pthread_join(catThreads[j], NULL); //AM TB**
+     pthread_join(catThreads[i], NULL); //AM TB    
   }
 
   /*
     * Delete the locks and semaphores
     */
-  sem_destroy(&lizard_cross);  //AM TB**
-  sem_destroy(&lizard_look);  //AM TB**
-  sem_destroy(&cat_look);  //AM TB**
+  sem_destroy(&cross);  //AM TB
+  sem_destroy(&look);  //AM TB
   
   /*
    * Exit happily
@@ -264,23 +261,18 @@ void * lizardThread( void * param )
   
       //sleep for up to MAX_LIZARD_SLEEP seconds
       lizard_sleep(num);  //AM TB
-      printf("Calling 1. \n");
       
       //wait until [sago -> monkey grass] crossing is safe
       sago_2_monkeyGrass_is_safe(num);  //AM TB
-       printf("Calling 2. \n");
       
       //cross [sago -> monkey grass], it takes up to CROSS_SECONDS seconds to cross
       cross_sago_2_monkeyGrass(num);  //AM TB
-       printf("Calling 3. \n");
       
       //eat in the monkey grass
       made_it_2_monkeyGrass(num);  //AM TB
-       printf("Calling 4. \n");
       
       //it takes up to MAX_LIZARD_EAT seconds to eat
       lizard_eat(num);  //AM TB
-      printf("Calling eat. \n");
       
       //wait until [monkey grass -> sago] crossing is safe
       monkeyGrass_2_sago_is_safe(num);  //AM TB
@@ -290,7 +282,6 @@ void * lizardThread( void * param )
       
       //it takes up to CROSS_SECONDS seconds to cross
       made_it_2_sago(num);  //AM TB
-      printf("calling made it. \n");
     }
 
   pthread_exit(NULL);
@@ -319,24 +310,24 @@ void * catThread( void * param )
   while(running)
     {
 	  cat_sleep(num);
-          printf("The number going to grass is %d \n",numCrossingSago2MonkeyGrass);
-          printf("The number going to sago is %d \n",numCrossingMonkeyGrass2Sago);
 
           //waits till value is greater than 0, decrement semaphore value by 1
-          sem_wait(&cat_look);  //AM TB**
-        
+          sem_wait(&look);  //AM TB
 	
           /*
 	   * Check for too many lizards crossing
 	   */
 	  if (numCrossingSago2MonkeyGrass + numCrossingMonkeyGrass2Sago > MAX_LIZARD_CROSSING)
 	  {
+	    //TESTING*************************************************//
+	    printf("\tNumber Crossing: %d\n", numCrossingSago2MonkeyGrass + numCrossingMonkeyGrass2Sago);
+	   
 	    printf( "\tThe cats are happy - they have toys.\n" );
 	    exit( -1 );
 	  }
           
           //increment cross value by 1, if 1 or more threads waiting wake 1 thread
-          sem_post(&cat_look); //AM TB
+          sem_post(&look); //AM TB
     }
 
   pthread_exit(NULL);
@@ -414,24 +405,19 @@ void cat_sleep(int num)
  */
 void sago_2_monkeyGrass_is_safe(int num)
 {
-   
   if (debug)
   {
     printf( "[%2d] checking  sago -> monkey grass\n", num );
     fflush( stdout );
   }
+  
+  sem_wait(&cross);  //AM TB
 
-  //increment cross value by 1, if 1 or more threads waiting wake 1 thread
-  while((numCrossingMonkeyGrass2Sago+numCrossingSago2MonkeyGrass)>=MAX_LIZARD_CROSSING)// AM TB**  if number crossing both ways hit MAX_LIZARD_CROSSING then blocks looking and crossing
-      {
-      sem_wait(&lizard_look);// AM TB**
-       sem_wait(&lizard_cross);
-      }
-  
-  
-  sem_post(&lizard_cross);  
-  
-  
+  if(numCrossingSago2MonkeyGrass + numCrossingMonkeyGrass2Sago < MAX_LIZARD_CROSSING) //AM TB
+  {
+  	//increment cross value by 1, if 1 or more threads waiting wake 1 thread
+  	sem_post(&cross); //AM TB
+  }
 
   if (debug)
   {
@@ -452,25 +438,15 @@ void sago_2_monkeyGrass_is_safe(int num)
  */
 void cross_sago_2_monkeyGrass(int num)
 {
-
-    int m;  // AM TB**
-    
   if (debug)
   {
     printf( "[%2d] crossing  sago -> monkey grass\n", num );
     fflush( stdout );
   }
 
-  //waits till value is greater than 0, decrement semaphore value by 1  
-      
-      if(numCrossingSago2MonkeyGrass>=MAX_LIZARD_CROSSING)// AM TB**  Checks to see how many are crossing and if too many blocks from the rest
-      {
-          for(m=0; m<(numCrossingSago2MonkeyGrass); m++)// AM TB**
-          {
-            sem_wait(&lizard_cross); //AM TB
-            sem_wait(&lizard_look); //AM TB           
-          }
-      }
+  //waits till value is greater than 0, decrement semaphore value by 1
+  sem_wait(&cross); //AM TB
+  
   /*
    * One more crossing this way
    */
@@ -491,12 +467,14 @@ void cross_sago_2_monkeyGrass(int num)
    * It takes a while to cross, so simulate it
    */
   sleep( CROSS_SECONDS );
-  
 
   /*
    * That one seems to have made it
    */
   numCrossingSago2MonkeyGrass--;
+  
+  //TESTING**********************************************//
+  printf("Sago2Monkey: %d\n" , numCrossingSago2MonkeyGrass);
 }
 
 /*
@@ -509,7 +487,6 @@ void cross_sago_2_monkeyGrass(int num)
  */
 void made_it_2_monkeyGrass(int num)
 {
-   
   /*
    * Whew, made it across
    */
@@ -520,9 +497,7 @@ void made_it_2_monkeyGrass(int num)
   }
 
   //increment cross value by 1, if 1 or more threads waiting wake 1 thread
-
-  sem_post(&lizard_cross);  
-  
+  sem_post(&cross);  //AM TB
 }
 
 /*
@@ -536,7 +511,6 @@ void made_it_2_monkeyGrass(int num)
 void lizard_eat(int num)
 {
   int eatSeconds;
-  
 
   eatSeconds = 1 + (int)(random() / (double)RAND_MAX * MAX_LIZARD_EAT);
 
@@ -575,16 +549,16 @@ void monkeyGrass_2_sago_is_safe(int num)
     printf( "[%2d] checking  monkey grass -> sago\n", num );
     fflush( stdout );
   }
-while((numCrossingMonkeyGrass2Sago+numCrossingSago2MonkeyGrass)>=MAX_LIZARD_CROSSING)// AM TB**  if number crossing both ways hit MAX_LIZARD_CROSSING then blocks looking and crossing
-      {
-      sem_wait(&lizard_look);// AM TB**
-       sem_wait(&lizard_cross);
-      }
+
+  //waits till the value is greater than 0, decrement semaphore value by 1
+  sem_wait(&cross);  //AM TB
   
-  //increment cross value by 1, if 1 or more threads waiting wake 1 thread
-  sem_post(&lizard_cross);  
-
-
+  if(numCrossingSago2MonkeyGrass + numCrossingMonkeyGrass2Sago < MAX_LIZARD_CROSSING)  //AM TB
+  {
+  	//increment cross value by 1, if 1 or more threads waiting wake 1 thread
+  	sem_post(&cross); //AM TB
+  }
+  
   if (debug)
   {
     printf( "[%2d] thinks  monkey grass -> sago  is safe\n", num );
@@ -603,8 +577,6 @@ while((numCrossingMonkeyGrass2Sago+numCrossingSago2MonkeyGrass)>=MAX_LIZARD_CROS
  */
 void cross_monkeyGrass_2_sago(int num)
 {
-    int n;//AM TB**
-    
   if (debug)
   {
     printf( "[%2d] crossing  monkey grass -> sago\n", num );
@@ -612,21 +584,12 @@ void cross_monkeyGrass_2_sago(int num)
   }
 
   //waits till value is greater than 0, decrement semaphore value by 1
-  sem_wait(&lizard_cross); //AM TB
+  sem_wait(&cross); //AM TB
   
   /*
    * One more crossing this way
    */
   numCrossingMonkeyGrass2Sago++;
-   
-  if(num >=MAX_LIZARD_CROSSING)//AM TB**    Checks to see how many are crossing and if too many blocks from the rest but allows 4
-  {
-      for(n=MAX_LIZARD_CROSSING; n > numCrossingMonkeyGrass2Sago; n++)//AM TB
-      {
-      sem_wait(&lizard_cross); //AM TB**
-       
-      }
-  }
   
   /*
    * Check for lizards cross both ways
@@ -648,6 +611,9 @@ void cross_monkeyGrass_2_sago(int num)
    * That one seems to have made it
    */
   numCrossingMonkeyGrass2Sago--;
+
+  //TESTING******************************************************************//
+  printf("MonkeyGrass 2 Sago: %d\n", numCrossingMonkeyGrass2Sago);
 }
 
 /*
@@ -660,7 +626,6 @@ void cross_monkeyGrass_2_sago(int num)
  */
 void made_it_2_sago(int num)
 {
-    
   /*
    * Whew, made it across
    */
@@ -671,7 +636,8 @@ void made_it_2_sago(int num)
   }
   
   //increment cross value by 1, if 1 or more threads waiting wake 1 thread
-  sem_post(&lizard_cross);
+  sem_post(&cross);  //AM TB
 }
+
 
 
