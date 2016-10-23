@@ -10,8 +10,11 @@
 /*                                                             */
 /* Execute with the -d command-line option to enable debugging */
 /* output.  For example,                                       */
-/*   ./lizard -d                                               */
+/*   ./lizard -d                                               */  
 /*                                                             */
+/* @authors Ashley Miller / Torrey Bettis                      */
+/* @date 10/15/2016                                            */
+/* @info Course COP4634 Project 3                              */
 /***************************************************************/
 
 #include <stdio.h>
@@ -319,9 +322,6 @@ void * catThread( void * param )
 	   */
 	  if (numCrossingSago2MonkeyGrass + numCrossingMonkeyGrass2Sago > MAX_LIZARD_CROSSING)
 	  {
-	    //TESTING*************************************************//
-	    printf("\tNumber Crossing: %d\n", numCrossingSago2MonkeyGrass + numCrossingMonkeyGrass2Sago);
-	   
 	    printf( "\tThe cats are happy - they have toys.\n" );
 	    exit( -1 );
 	  }
@@ -473,9 +473,7 @@ void cross_sago_2_monkeyGrass(int num)
    */
   numCrossingSago2MonkeyGrass--;
   
-  //TESTING**********************************************//
-  printf("Sago2Monkey: %d\n" , numCrossingSago2MonkeyGrass);
-}
+ }
 
 /*
  * made_it_2_monkeyGrass()
@@ -612,8 +610,7 @@ void cross_monkeyGrass_2_sago(int num)
    */
   numCrossingMonkeyGrass2Sago--;
 
-  //TESTING******************************************************************//
-  printf("MonkeyGrass 2 Sago: %d\n", numCrossingMonkeyGrass2Sago);
+  
 }
 
 /*
